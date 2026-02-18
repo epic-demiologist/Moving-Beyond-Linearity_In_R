@@ -1,0 +1,12 @@
+---
+title: "Moving Beyond Linearity"
+output: github_document
+---
+
+## Background
+
+Linear models are relatively simple to describe and implement, and have advantages over other approaches in terms of interpretation and inference. However, standard linear regression can have limitations in terms of predictive power because the assumption of linearity is almost always an approximation, and sometimes a poor one. Linearity (the relationship between the predictors and the outcome is linear) is one of the assumptions of linear regression model. There are several statistical methods to handle the non linearity. Most sophisticated is the extension of linear model like polynomial regression, step functions and splines.
+
+
+## Polynomial Regression 
+
