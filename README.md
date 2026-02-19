@@ -1,0 +1,164 @@
+Moving Beyond Linearity
+================
+
+## Background
+
+Linear models are relatively simple to describe and implement, and have
+advantages over other approaches in terms of interpretation and
+inference. However, standard linear regression can have limitations in
+terms of predictive power because the assumption of linearity is almost
+always an approximation, and sometimes a poor one. Linearity (the
+relationship between the predictors and the outcome is linear) is one of
+the assumptions of linear regression model. There are several
+statistical methods to handle the non linearity. Most sophisticated is
+the extension of linear model like polynomial regression, step functions
+and splines.
+
+## Polynomial Regression
+
+**Polynomial regression** extends the linear model by adding extra
+predictors, obtained by raising each of the original predictors to a
+power. For example, a cubic regression uses three variables, $x$, $x^2$,
+and $x^3$, as predictors. This approach provides a simple way to provide
+a non-linear fit to data.
+
+The relationship between the predictors and the response is non-linear
+has been to replace the standard linear model
+
+$$
+y_i = β_0 + β_1x_i + ϵ_i
+$$
+
+with a polynomial function
+
+$$
+y_i = \beta_0 + \beta_1 x_i + \beta_2 x_i^3 + \beta_3x_i^3 + ... + \beta_dx_i^d + \epsilon_i
+$$
+
+where ϵi is the error term.
+
+For large enough degree d, a polynomial regression allows us to produce
+an extremely non-linear curve. Generally, it is unusual to use d greater
+than 3 or 4 because for large values of d, the polynomial curve can
+become overly flexible and can take on some very strange shapes.
+
+# Practical Example
+
+We will be analysing complex data ***Wage***. We begin by loading the
+ISLR2 library, which contains the data. This data is has 3000
+observation of 11 different variables which includes year, age, marital
+status, race, logwage, wage, among other.
+
+``` r
+library(ISLR2)
+library(ggplot2)
+wage <- Wage
+```
+
+# Assessing non-linearity by visualization
+
+``` r
+ggplot(data = wage, aes(x = age, y = wage)) + 
+  geom_point()
+```
+
+![](README_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
+
+``` r
+# Fitting linear regression
+
+ggplot(data = wage, aes(x = age, y = wage)) + 
+  geom_point() + geom_smooth(method = "lm") +
+  labs(title = "Linear Regression of Wage in Age")
+```
+
+    ## `geom_smooth()` using formula = 'y ~ x'
+
+![](README_files/figure-gfm/unnamed-chunk-2-2.png)<!-- -->
+
+# Fitting polynomial regression model
+
+``` r
+polyfit <- lm(wage ~ poly(age, 4), data = wage)
+coef(summary(polyfit))
+```
+
+    ##                 Estimate Std. Error    t value     Pr(>|t|)
+    ## (Intercept)    111.70361  0.7287409 153.283015 0.000000e+00
+    ## poly(age, 4)1  447.06785 39.9147851  11.200558 1.484604e-28
+    ## poly(age, 4)2 -478.31581 39.9147851 -11.983424 2.355831e-32
+    ## poly(age, 4)3  125.52169 39.9147851   3.144742 1.678622e-03
+    ## poly(age, 4)4  -77.91118 39.9147851  -1.951938 5.103865e-02
+
+This syntax fits a linear model, using the $lm()$ function, in order to
+predict wage using a fourth-degree polynomial in age: $poly(age, 4)$.
+
+\###**Visualizing our fitted model**
+
+``` r
+# Create a new data frame for prediction
+age_grid <- data.frame(age = seq(min(wage$age), max(wage$age), length.out = 100))
+
+# Predict fitted values
+age_grid$predicted_wage <- predict(polyfit, newdata = age_grid)
+
+# Plot
+ggplot(wage, aes(x = age, y = wage)) +
+  geom_point(alpha = 0.5) +                     # original points
+  geom_line(data = age_grid, aes(x = age, y = predicted_wage), color = "blue", size = 1.2) +
+  labs(title = "4th-degree Polynomial Regression of Wage on Age",
+       x = "Age", y = "Wage") +
+  theme_minimal()
+```
+
+![](README_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+
+``` r
+# Create a new data frame for prediction
+
+rm(age_grid2)
+
+
+
+age_grid2 <- data.frame(
+  age = wage$age,
+  predicted_wage = predict(polyfit)
+)
+
+
+
+
+
+# Plot
+ggplot(wage, aes(x = age, y = wage)) +
+  geom_point(alpha = 0.5) +                     # original points
+  geom_line(data = age_grid2, aes(x = age, y = predicted_wage), color = "blue", size = 1.2) +
+  labs(title = "4th-degree Polynomial Regression of Wage on Age",
+       x = "Age", y = "Wage") +
+  theme_minimal()
+```
+
+![](README_files/figure-gfm/unnamed-chunk-5-1.png)<!-- --> \### **How to
+decide the degree of polynomial to use?**
+
+## Step Function
+
+**Step functions** cut the range of a variable into K distinct regions
+in order to produce a qualitative variable. This has the effect of
+fitting a piecewise constant function.
+
+## Regression Splines
+
+**Regression splines** are more flexible than polynomials and step
+functions, and in fact are an extension of the two. They involve
+dividing the range of $x$ into K distinct regions. Within each region, a
+polynomial function is fit to the data. However, these polynomials are
+constrained so that they join smoothly at the region boundaries, or
+knots. Provided that the interval is divided into enough regions, this
+can produce an extremely flexible fit.
+
+## Smoothing Splines
+
+**Smoothing splines** are similar to regression splines, but arise in a
+slightly different situation. Smoothing splines result from minimizing a
+residual sum of squares criterion subject to a smoothness penalty.
