@@ -59,8 +59,7 @@ coef(summary(polyfit))
 
 This syntax fits a linear model, using the $lm()$ function, in order to predict wage using a fourth-degree polynomial in age: $poly(age, 4)$.
 
-###**Visualizing our fitted model**
-
+\###**Visualizing our fitted model**
 
 ```{r, warning=F}
 
@@ -80,53 +79,40 @@ ggplot(wage, aes(x = age, y = wage)) +
 
 ```
 
+### **How to decide the degree of polynomial to use?**
 
+In performing a polynomial regression we must decide on the degree of the polynomial to use. You can do Cross validation, Likelihood Ratio test, hypothesis test, check AIC. One way to do this is by using hypothesis tests. We now fit models ranging from linear to a degree-5 polynomial and seek to determine the simplest model which is suﬀicient to explain the relationship between wage and age. We use the $anova()$ function, which performs an analysis of variance (ANOVA, using an F-test) in order to test the null hypothesis that a model M1 is suﬀicient to explain the data against the alternative hypothesis that a more complex model M2 is required.
 
-```{r, warning=F}
+```{r}
 
-# Create a new data frame for prediction
+poly.M1 <- lm(wage ~ age, data = wage)
+poly.M2 <- lm(wage ~ poly(age, 2), data = wage)
+poly.M3 <- lm(wage ~ poly(age, 3), data = wage)
+poly.M4 <- lm(wage ~ poly(age, 4), data = wage)
+poly.M5 <- lm(wage ~ poly(age, 5), data = wage)
 
-rm(age_grid2)
+anova(poly.M1,poly.M2,poly.M3,poly.M4,poly.M5)
 
-
-
-age_grid2 <- data.frame(
-  age = wage$age,
-  predicted_wage = predict(polyfit)
-)
-
-
-
-
-
-# Plot
-ggplot(wage, aes(x = age, y = wage)) +
-  geom_point(alpha = 0.5) +                     # original points
-  geom_line(data = age_grid2, aes(x = age, y = predicted_wage), color = "blue", size = 1.2) +
-  labs(title = "4th-degree Polynomial Regression of Wage on Age",
-       x = "Age", y = "Wage") +
-  theme_minimal()
 
 ```
 
-
-
-
-
-
-
-
-
-
-### **How to decide the degree of polynomial to use?**
+The ANOVA comparison indicates that the polynomial terms upto degree 3 significantly improve model fit. Higher order terms beyond 3 do not provide significant meaningful results, suggesting that the cubic polynomial is sufficient.
 
 ## Step Function
 
-**Step functions** cut the range of a variable into K distinct regions in order to produce a qualitative variable. This has the effect of fitting a piecewise constant function.
+**Step functions** cut the range of a variable into K distinct regions in order to produce a qualitative variable. This has the effect of fitting a piece wise constant function. We break the range of X into bins, and fit a different **constant** in each bin.
 
 ## Regression Splines
 
 **Regression splines** are more flexible than polynomials and step functions, and in fact are an extension of the two. They involve dividing the range of $x$ into K distinct regions. Within each region, a polynomial function is fit to the data. However, these polynomials are constrained so that they join smoothly at the region boundaries, or knots. Provided that the interval is divided into enough regions, this can produce an extremely flexible fit.
+
+
+
+
+
+
+
+
 
 ## Smoothing Splines
 

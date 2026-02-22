@@ -113,33 +113,48 @@ ggplot(wage, aes(x = age, y = wage)) +
 
 ![](README_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
 
+### **How to decide the degree of polynomial to use?**
+
+In performing a polynomial regression we must decide on the degree of
+the polynomial to use. One way to do this is by using hypothesis tests.
+We now fit models ranging from linear to a degree-5 polynomial and seek
+to determine the simplest model which is suﬀicient to explain the
+relationship between wage and age. We use the $anova()$ function, which
+performs an analysis of variance (ANOVA, using an F-test) in order to
+test the null hypothesis that a model M1 is suﬀicient to explain the
+data against the alternative hypothesis that a more complex model M2 is
+required.
+
 ``` r
-# Create a new data frame for prediction
+poly.M1 <- lm(wage ~ age, data = wage)
+poly.M2 <- lm(wage ~ poly(age, 2), data = wage)
+poly.M3 <- lm(wage ~ poly(age, 3), data = wage)
+poly.M4 <- lm(wage ~ poly(age, 4), data = wage)
+poly.M5 <- lm(wage ~ poly(age, 5), data = wage)
 
-rm(age_grid2)
-
-
-
-age_grid2 <- data.frame(
-  age = wage$age,
-  predicted_wage = predict(polyfit)
-)
-
-
-
-
-
-# Plot
-ggplot(wage, aes(x = age, y = wage)) +
-  geom_point(alpha = 0.5) +                     # original points
-  geom_line(data = age_grid2, aes(x = age, y = predicted_wage), color = "blue", size = 1.2) +
-  labs(title = "4th-degree Polynomial Regression of Wage on Age",
-       x = "Age", y = "Wage") +
-  theme_minimal()
+anova(poly.M1,poly.M2,poly.M3,poly.M4,poly.M5)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-5-1.png)<!-- --> \### **How to
-decide the degree of polynomial to use?**
+    ## Analysis of Variance Table
+    ## 
+    ## Model 1: wage ~ age
+    ## Model 2: wage ~ poly(age, 2)
+    ## Model 3: wage ~ poly(age, 3)
+    ## Model 4: wage ~ poly(age, 4)
+    ## Model 5: wage ~ poly(age, 5)
+    ##   Res.Df     RSS Df Sum of Sq        F    Pr(>F)    
+    ## 1   2998 5022216                                    
+    ## 2   2997 4793430  1    228786 143.5931 < 2.2e-16 ***
+    ## 3   2996 4777674  1     15756   9.8888  0.001679 ** 
+    ## 4   2995 4771604  1      6070   3.8098  0.051046 .  
+    ## 5   2994 4770322  1      1283   0.8050  0.369682    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+The ANOVA comparison indicates that the polynomial terms upto degree 3
+significantly improve model fit. Higher order terms beyond 3 do not
+provide significant meaningful results, suggesting that the cubic
+polynomial is sufficient.
 
 ## Step Function
 
