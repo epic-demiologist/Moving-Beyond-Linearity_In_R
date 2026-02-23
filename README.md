@@ -212,8 +212,60 @@ A polynomial spline of degree p is a function that
 - e.g., a cubic spline consists of polynomial transformations of degree
   3 within each interval and has 2 times continuous derivatives.
 
-## Smoothing Splines
+## Regression splines using basis functions
 
-**Smoothing splines** are similar to regression splines, but arise in a
-slightly different situation. Smoothing splines result from minimizing a
-residual sum of squares criterion subject to a smoothness penalty.
+Regression splines may initially seem complicated because they involve
+fitting piecewise polynomials while ensuring that the function (and some
+of its derivatives) remain continuous at the knots. Fortunately, this
+complexity can be handled using a basis function representation.
+
+A cubic regression spline with K knots can be written as a linear
+regression model:
+
+$$
+y_i = \beta_0 + \beta_1 b_1(x_i) + \beta_2 b_2(x_i) + \cdots + \beta_{K+3} b_{K+3}(x_i) + \varepsilon_i
+$$
+
+where:
+
+- $b_1(x), \dots, b_{K+3}(x)$ are spline basis function
+
+- $\beta_0, \dots, \beta_{K+3}$ are unknown coefficients
+
+- $\varepsilon_i$ is the error term
+
+## **Truncated power basis for cubic splines**
+
+To construct a cubic spline:
+
+- Start with a cubic polynomial basis: x, x^2, and x^3
+
+- Add one truncated power basis function for each knot
+
+A truncated power basis function is defined as:
+
+$$
+h(x, \xi) = (x - \xi)_+^3 =
+\begin{cases}
+(x - \xi)^3, & x > \xi \\
+0, & x \le \xi
+\end{cases}
+$$
+
+In order to fit a cubic spline to a data set with K knots, we perform
+least squares regression with an intercept and 3 + K predictors, of the
+form $X, X^2, X^3,h(x,\xi_1)$, $h(x, \xi_2), ... h(x, \xi_K)$, where
+$ξ_1, . . . , ξ_K$ are the knots.
+
+## **Restricted/Natural Splines**
+
+Regression splines can exhibit high variance near the boundaries of the
+predictor space, that is, when X takes very small or very large values.
+In these regions, the fitted curve may behave erratically, leading to
+wide and unstable confidence intervals.
+
+A natural spline is a regression spline with additional boundary
+constraints: function is required to be linear at the boundary (in the
+region where X is smaller than the smallest knot, or larger than the
+largest knot). This additional constraint means that natural splines
+generally produce more stable estimates at the boundaries.

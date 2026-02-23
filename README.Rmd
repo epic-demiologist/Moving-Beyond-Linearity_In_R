@@ -179,29 +179,3 @@ In order to fit a cubic spline to a data set with K knots, we perform least squa
 Regression splines can exhibit high variance near the boundaries of the predictor space, that is, when X takes very small or very large values. In these regions, the fitted curve may behave erratically, leading to wide and unstable confidence intervals.
 
 A natural spline is a regression spline with additional boundary constraints: function is required to be linear at the boundary (in the region where X is smaller than the smallest knot, or larger than the largest knot). This additional constraint means that natural splines generally produce more stable estimates at the boundaries.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
