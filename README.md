@@ -116,14 +116,15 @@ ggplot(wage, aes(x = age, y = wage)) +
 ### **How to decide the degree of polynomial to use?**
 
 In performing a polynomial regression we must decide on the degree of
-the polynomial to use. One way to do this is by using hypothesis tests.
-We now fit models ranging from linear to a degree-5 polynomial and seek
-to determine the simplest model which is suﬀicient to explain the
-relationship between wage and age. We use the $anova()$ function, which
-performs an analysis of variance (ANOVA, using an F-test) in order to
-test the null hypothesis that a model M1 is suﬀicient to explain the
-data against the alternative hypothesis that a more complex model M2 is
-required.
+the polynomial to use. You can do Cross validation, Likelihood Ratio
+test, hypothesis test, check AIC. One way to do this is by using
+hypothesis tests. We now fit models ranging from linear to a degree-5
+polynomial and seek to determine the simplest model which is suﬀicient
+to explain the relationship between wage and age. We use the $anova()$
+function, which performs an analysis of variance (ANOVA, using an
+F-test) in order to test the null hypothesis that a model M1 is
+suﬀicient to explain the data against the alternative hypothesis that a
+more complex model M2 is required.
 
 ``` r
 poly.M1 <- lm(wage ~ age, data = wage)
@@ -160,17 +161,56 @@ polynomial is sufficient.
 
 **Step functions** cut the range of a variable into K distinct regions
 in order to produce a qualitative variable. This has the effect of
-fitting a piecewise constant function.
+fitting a piece wise constant function. We break the range of X into
+bins, and fit a different **constant** in each bin.
 
 ## Regression Splines
 
 **Regression splines** are more flexible than polynomials and step
 functions, and in fact are an extension of the two. They involve
-dividing the range of $x$ into K distinct regions. Within each region, a
+dividing the range of $X$ into K distinct regions. Within each region, a
 polynomial function is fit to the data. However, these polynomials are
 constrained so that they join smoothly at the region boundaries, or
 knots. Provided that the interval is divided into enough regions, this
 can produce an extremely flexible fit.
+
+Divide $X$ into smaller sub-intervals,
+
+$$
+x_{min} = t_0 < t_1 < .... t_m < t_{m+1} = x_{max}
+$$
+
+The breakpoints $t_1$, $t_m$, $t_{m +1}$ are called knots.
+
+We construct $m + 1$ intervals, and for each sub intervals, we apply
+$m + 1$ polynomial functions as mentioned below:
+
+$$ 
+f_i(x) = β_{i,0} + β_{i,1}x_1 + β_{i,2}x_2 + β_{i,3}x_3 ....
+$$
+
+for $$ i \in [t_0, t_1], [t_1, t_2], ... [t_m, t_{m+1}] $$
+
+where, $x_1, x_2, x_3$ are corresponding polynomial covariates.
+
+## Constraint
+
+**In the next step**, we must ensure that the fitted functions should be
+continuous and smooth at each knot. In other words, there should not be
+sudden jump or sudden fall in our function at each interior knot. To
+solve this, if we have K knots, this is done by making continuous
+derivative up to (K-1) order. Assumption of continuous derivatives
+ensures that polynomial pieces are joining together smoothly at all
+interior knot points.
+
+A polynomial spline of degree p is a function that
+
+- Consists of a polynomial of degree p within each of the intervals, and
+
+- Has continuous derivatives up to the order (p−1) at each knot.
+
+- e.g., a cubic spline consists of polynomial transformations of degree
+  3 within each interval and has 2 times continuous derivatives.
 
 ## Smoothing Splines
 
