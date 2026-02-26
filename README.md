@@ -269,3 +269,248 @@ constraints: function is required to be linear at the boundary (in the
 region where X is smaller than the smallest knot, or larger than the
 largest knot). This additional constraint means that natural splines
 generally produce more stable estimates at the boundaries.
+
+## Tutorial For Splines
+
+1.  Download the Titanic dataset of the Hmisc package with
+    getHdata(titanic3), restrict the data to the variables survived,
+    pclass, age, sex, sibsp, parch and examine them depending on the
+    survival.
+
+``` r
+library(haven)
+library(Hmisc)
+```
+
+    ## 
+    ## Attaching package: 'Hmisc'
+
+    ## The following objects are masked from 'package:base':
+    ## 
+    ##     format.pval, units
+
+``` r
+library(rms)
+
+getHdata(titanic3) 
+# The titanic3 dataset describes the survival status of individual passengers on the Titanic
+
+var <- c("survived", "pclass", "age", "sex", "sibsp", "parch")
+# survived: survival (0 = No; 1 = Yes)
+# pclass: a factor with levels 1st, 2nd, and 3rd
+# age: age in years
+# sex: a factor with levels female and male
+# sibsp: number of siblings/spouses aboard
+# parch: number of parents/children aboard
+
+
+# Create new dataset containing only the variables we want to work with
+t3 <- titanic3[, var]
+
+
+# If you want cross-tabs or other descriptives
+
+prop.table(table(t3$pclass, t3$survived), 1)  # row percentages
+```
+
+    ##      
+    ##               0         1
+    ##   1st 0.3808050 0.6191950
+    ##   2nd 0.5703971 0.4296029
+    ##   3rd 0.7447109 0.2552891
+
+``` r
+# Histograms/ density plots (numeric)
+hist(t3$age, main="Age distribution", xlab="Age (years)")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
+
+``` r
+# Bar plots (categorical)
+barplot(table(t3$pclass, t3$survived), beside = TRUE, legend = TRUE)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-6-2.png)<!-- -->
+
+2.  Build an appropriate full adjusted model of surviving while using
+    the numerical variables in a linear way.
+
+``` r
+## In the rms workflow, we have to run following codes at first to tell the rms package about the distribution of varaibales in our data set. 
+
+#Setting options(datadist = "dd") allows rms functions to access this information automatically, ensuring consistent model specification, interpretation, and reproducibility.
+
+dd <- datadist(t3)
+options(datadist='dd') 
+
+
+
+# lrm = logistic regression model from rcs package. lrm() is more sophisticated than base glm() for prediction and validating the model.
+
+f0 <- lrm(survived ~ sex + pclass + age + sibsp + parch, data = t3) 
+summary(f0)
+```
+
+    ##              Effects              Response : survived 
+    ## 
+    ##  Factor            Low High Diff. Effect   S.E.    Lower 0.95 Upper 0.95
+    ##  age               21  39   18    -0.71080 0.11942 -0.94486   -0.47673  
+    ##   Odds Ratio       21  39   18     0.49125      NA  0.38873    0.62081  
+    ##  sibsp              0   1    1    -0.35291 0.10536 -0.55941   -0.14642  
+    ##   Odds Ratio        0   1    1     0.70264      NA  0.57155    0.86380  
+    ##  parch              0   9    9     0.66925 0.89920 -1.09310    2.43160  
+    ##   Odds Ratio        0   9    9     1.95280      NA  0.33516   11.37800  
+    ##  sex - female:male  2   1   NA     2.55690 0.17328  2.21720    2.89650  
+    ##   Odds Ratio        2   1   NA    12.89500      NA  9.18190   18.11000  
+    ##  pclass - 1st:3rd   3   1   NA     2.35200 0.22882  1.90350    2.80050  
+    ##   Odds Ratio        3   1   NA    10.50700      NA  6.70960   16.45300  
+    ##  pclass - 2nd:3rd   3   2   NA     0.98527 0.19939  0.59446    1.37610  
+    ##   Odds Ratio        3   2   NA     2.67850      NA  1.81210    3.95930
+
+**Example of Interpretation of lrm():**
+
+Age: Comparing a 39 years old to 21 years old passenger, holding other
+variable constant, the odds of survival decreases by ~51% (Effect size
+OR = 0.491), and looking at CI, this is statistically significant.
+
+Sex: Comparing female to male, holding other variables constant, the
+odds of survival is 12.89 times significantly higher in female than
+male.
+
+3.  **Extend the model of \#2 using restricted cubic splines for age
+    by**
+    1.  Determining a reasonable number of knots
+    2.  Checking the linearity-assumption
+
+``` r
+rcs_m0 <- lrm(survived ~ sex + pclass + rcs(age, 0) + sibsp + parch, data = t3) # Equivalent to Linear model 
+rcs_m1 <- lrm(survived ~ sex + pclass + rcs(age, 3) + sibsp + parch, data = t3) # model with 3 knots
+rcs_m2 <- lrm(survived ~ sex + pclass + rcs(age, 4) + sibsp + parch, data = t3) # model with 4 knots
+rcs_m3 <- lrm(survived ~ sex + pclass + rcs(age, 5) + sibsp + parch, data = t3)
+rcs_m4 <- lrm(survived ~ sex + pclass + rcs(age, 6) + sibsp + parch, data = t3)
+rcs_m5 <- lrm(survived ~ sex + pclass + rcs(age, 7) + sibsp + parch, data = t3)
+rcs_m6 <- lrm(survived ~ sex + pclass + rcs(age, 8) + sibsp + parch, data = t3)
+   
+
+d <- data.frame("knots" = c(0, 3:8), 
+                "AIC" = c(AIC(rcs_m0), AIC(rcs_m1), AIC(rcs_m2), AIC(rcs_m3), AIC(rcs_m4), AIC(rcs_m5), AIC(rcs_m6)))
+
+d[order(d$AIC), ]
+```
+
+    ##   knots      AIC
+    ## 4     5 977.1498
+    ## 3     4 978.1138
+    ## 5     6 978.9990
+    ## 6     7 981.4057
+    ## 2     3 982.0288
+    ## 7     8 982.8882
+    ## 1     0 984.1193
+
+**Automation using function:**
+
+``` r
+mx <- matrix(nrow = 0, ncol = 2)
+colnames(mx) <- c("knots", "AIC")
+
+for(i in c(0, 3:8)){
+  m <- lrm(survived ~ sex + pclass + rcs(age, i) + sibsp + parch, data = t3)
+  mx <- rbind(mx, c(i, round(AIC(m), 2)))
+  
+}
+
+mx[order(mx[, 2]),]
+```
+
+    ##      knots    AIC
+    ## [1,]     5 977.15
+    ## [2,]     4 978.11
+    ## [3,]     6 979.00
+    ## [4,]     7 981.41
+    ## [5,]     3 982.03
+    ## [6,]     8 982.89
+    ## [7,]     0 984.12
+
+**Checking the linearity of the function**
+
+``` r
+f <- lrm(survived ~ sex + pclass + rcs(age, 5) + sibsp + parch, data = t3)  
+
+anova(f) # test for linearity
+```
+
+    ##                 Wald Statistics          Response: survived 
+    ## 
+    ##  Factor     Chi-Square d.f. P     
+    ##  sex        220.24     1    <.0001
+    ##  pclass      98.80     2    <.0001
+    ##  age         45.44     4    <.0001
+    ##   Nonlinear  12.29     3    0.0064
+    ##  sibsp       15.34     1    0.0001
+    ##  parch        0.01     1    0.9145
+    ##  TOTAL      283.32     9    <.0001
+
+Since the nonlinear estimate is significant, the non linearity
+assumption is valid.
+
+**Visualization of the prediction of the survival against age**
+
+``` r
+p <- Predict(f, age, fun = plogis) # fun = plogis converts log odds into probability
+
+plot(p,
+     xlab = "Age (years)",
+     ylab = "Predicted probability of survival")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+
+4.  Compare statistically the models of \#2 (f0) and \#3 (f)
+
+``` r
+lrtest(f0, f) 
+```
+
+    ## 
+    ## Model 1: survived ~ sex + pclass + age + sibsp + parch
+    ## Model 2: survived ~ sex + pclass + rcs(age, 5) + sibsp + parch
+    ## 
+    ##   L.R. Chisq         d.f.            P 
+    ## 12.969454675  3.000000000  0.004703129
+
+5.  Checking whether age is modifed by sex and plot the associations
+    depending on passenger class
+
+``` r
+anova(f3 <- lrm(survived ~ rcs(age, 4)*sex + pclass + sibsp + parch, data = t3))
+```
+
+    ##                 Wald Statistics          Response: survived 
+    ## 
+    ##  Factor                                   Chi-Square d.f. P     
+    ##  age  (Factor+Higher Order Factors)        63.61      6   <.0001
+    ##   All Interactions                         26.44      3   <.0001
+    ##   Nonlinear (Factor+Higher Order Factors)  15.30      4   0.0041
+    ##  sex  (Factor+Higher Order Factors)       225.50      4   <.0001
+    ##   All Interactions                         26.44      3   <.0001
+    ##  pclass                                    95.57      2   <.0001
+    ##  sibsp                                     16.31      1   0.0001
+    ##  parch                                      0.29      1   0.5874
+    ##  age * sex  (Factor+Higher Order Factors)  26.44      3   <.0001
+    ##   Nonlinear                                 4.54      2   0.1031
+    ##   Nonlinear Interaction : f(A,B) vs. AB     4.54      2   0.1031
+    ##  TOTAL NONLINEAR                           15.30      4   0.0041
+    ##  TOTAL NONLINEAR + INTERACTION             33.56      5   <.0001
+    ##  TOTAL                                    287.23     11   <.0001
+
+``` r
+p1 <- Predict(f3, age, sex, pclass, fun = plogis)  
+ggplot(p1,
+       ylab = "Predicted probability of survival") 
+```
+
+![](README_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+
+The relationship between age and survival differs between males and
+females (age \* sex: Chi-Square = 26.44, p \<.0001 ).

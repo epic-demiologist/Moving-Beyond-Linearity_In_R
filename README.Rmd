@@ -179,3 +179,157 @@ In order to fit a cubic spline to a data set with K knots, we perform least squa
 Regression splines can exhibit high variance near the boundaries of the predictor space, that is, when X takes very small or very large values. In these regions, the fitted curve may behave erratically, leading to wide and unstable confidence intervals.
 
 A natural spline is a regression spline with additional boundary constraints: function is required to be linear at the boundary (in the region where X is smaller than the smallest knot, or larger than the largest knot). This additional constraint means that natural splines generally produce more stable estimates at the boundaries.
+
+## Tutorial For Splines
+
+1.  Download the Titanic dataset of the Hmisc package with getHdata(titanic3), restrict the data to the variables survived, pclass, age, sex, sibsp, parch and examine them depending on the survival.
+
+```{r}
+library(haven)
+library(Hmisc)
+library(rms)
+
+getHdata(titanic3) 
+# The titanic3 dataset describes the survival status of individual passengers on the Titanic
+
+var <- c("survived", "pclass", "age", "sex", "sibsp", "parch")
+# survived: survival (0 = No; 1 = Yes)
+# pclass: a factor with levels 1st, 2nd, and 3rd
+# age: age in years
+# sex: a factor with levels female and male
+# sibsp: number of siblings/spouses aboard
+# parch: number of parents/children aboard
+
+
+# Create new dataset containing only the variables we want to work with
+t3 <- titanic3[, var]
+
+
+# If you want cross-tabs or other descriptives
+
+prop.table(table(t3$pclass, t3$survived), 1)  # row percentages
+
+
+# Histograms/ density plots (numeric)
+hist(t3$age, main="Age distribution", xlab="Age (years)")
+
+# Bar plots (categorical)
+barplot(table(t3$pclass, t3$survived), beside = TRUE, legend = TRUE)
+
+```
+
+2.  Build an appropriate full adjusted model of surviving while using the numerical variables in a linear way.
+
+```{r}
+## In the rms workflow, we have to run following codes at first to tell the rms package about the distribution of varaibales in our data set. 
+
+#Setting options(datadist = "dd") allows rms functions to access this information automatically, ensuring consistent model specification, interpretation, and reproducibility.
+
+dd <- datadist(t3)
+options(datadist='dd') 
+
+
+
+# lrm = logistic regression model from rcs package. lrm() is more sophisticated than base glm() for prediction and validating the model.
+
+f0 <- lrm(survived ~ sex + pclass + age + sibsp + parch, data = t3) 
+summary(f0)
+
+
+```
+
+**Example of Interpretation of lrm():**
+
+Age: Comparing a 39 years old to 21 years old passenger, holding other variable constant, the odds of survival decreases by \~51% (Effect size OR = 0.491), and looking at CI, this is statistically significant.
+
+Sex: Comparing female to male, holding other variables constant, the odds of survival is 12.89 times significantly higher in female than male.
+
+3.  **Extend the model of #2 using restricted cubic splines for age by**
+    a.  Determining a reasonable number of knots
+    b.  Checking the linearity-assumption
+
+```{r}
+
+rcs_m0 <- lrm(survived ~ sex + pclass + rcs(age, 0) + sibsp + parch, data = t3) # Equivalent to Linear model 
+rcs_m1 <- lrm(survived ~ sex + pclass + rcs(age, 3) + sibsp + parch, data = t3) # model with 3 knots
+rcs_m2 <- lrm(survived ~ sex + pclass + rcs(age, 4) + sibsp + parch, data = t3) # model with 4 knots
+rcs_m3 <- lrm(survived ~ sex + pclass + rcs(age, 5) + sibsp + parch, data = t3)
+rcs_m4 <- lrm(survived ~ sex + pclass + rcs(age, 6) + sibsp + parch, data = t3)
+rcs_m5 <- lrm(survived ~ sex + pclass + rcs(age, 7) + sibsp + parch, data = t3)
+rcs_m6 <- lrm(survived ~ sex + pclass + rcs(age, 8) + sibsp + parch, data = t3)
+   
+
+d <- data.frame("knots" = c(0, 3:8), 
+                "AIC" = c(AIC(rcs_m0), AIC(rcs_m1), AIC(rcs_m2), AIC(rcs_m3), AIC(rcs_m4), AIC(rcs_m5), AIC(rcs_m6)))
+
+d[order(d$AIC), ]
+  
+  
+```
+
+**Automation using function:**
+
+```{r}
+
+mx <- matrix(nrow = 0, ncol = 2)
+colnames(mx) <- c("knots", "AIC")
+
+for(i in c(0, 3:8)){
+  m <- lrm(survived ~ sex + pclass + rcs(age, i) + sibsp + parch, data = t3)
+  mx <- rbind(mx, c(i, round(AIC(m), 2)))
+  
+}
+
+mx[order(mx[, 2]),]
+
+```
+
+**Checking the linearity of the function**
+
+```{r}
+f <- lrm(survived ~ sex + pclass + rcs(age, 5) + sibsp + parch, data = t3)  
+
+anova(f) # test for linearity
+```
+
+Since the nonlinear estimate is significant, the non linearity assumption is valid.
+
+**Visualization of the prediction of the survival against age**
+
+```{r}
+p <- Predict(f, age, fun = plogis) # fun = plogis converts log odds into probability
+
+plot(p,
+     xlab = "Age (years)",
+     ylab = "Predicted probability of survival")
+
+```
+
+
+4. Compare statistically the models of #2 (f0) and #3 (f)
+
+```{r}
+lrtest(f0, f) 
+
+```
+
+5. Checking whether age is modifed by sex and plot the associations
+depending on passenger class
+
+```{r}
+
+anova(f3 <- lrm(survived ~ rcs(age, 4)*sex + pclass + sibsp + parch, data = t3))
+
+
+p1 <- Predict(f3, age, sex, pclass, fun = plogis)  
+ggplot(p1,
+       ylab = "Predicted probability of survival") 
+```
+
+The relationship between age and survival differs between males and females (age * sex: Chi-Square = 26.44, p <.0001 ). 
+
+
+
+
+
+
